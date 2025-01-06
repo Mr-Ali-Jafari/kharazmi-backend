@@ -17,6 +17,12 @@ class User(Base):
 
     profile = relationship("Profile", back_populates="user", uselist=False)
 
+    todos = relationship("Todo", back_populates="user")
+
+
+
+
+
     def __repr__(self):
         return f"<User(id={self.id}, email={self.email}, is_active={self.is_active}, created_at={self.created_at})>"
 
@@ -58,3 +64,32 @@ class Message(Base):
     timestamp = Column(DateTime, default=datetime.utcnow)
     group_id = Column(Integer, ForeignKey("groups.id"))
     group = relationship("Group", back_populates="messages")
+
+
+
+
+class Todo(Base):
+    __tablename__ = "todos"
+    id = Column(Integer, primary_key=True, index=True)
+    title = Column(String, index=True)
+    description = Column(String)
+    status = Column(Boolean, default=False)
+    user_id = Column(Integer, ForeignKey("users.id"))
+    user = relationship("User", back_populates="todos")
+
+
+class ChatUser(Base):
+    __tablename__ = "chat_users"
+
+    id = Column(Integer, primary_key=True, index=True)
+    username = Column(String, unique=True, nullable=False)
+
+
+class PersonalMessage(Base):
+    __tablename__ = "personal_messages"
+    id = Column(Integer, primary_key=True, index=True)
+    sender = Column(String, ForeignKey("chat_users.username"))
+    receiver = Column(String, ForeignKey("chat_users.username"))
+    content = Column(String)
+    sender_user = relationship("ChatUser", foreign_keys=[sender])
+    receiver_user = relationship("ChatUser", foreign_keys=[receiver])

@@ -3,7 +3,7 @@ from fastapi import APIRouter, WebSocket, WebSocketDisconnect, HTTPException, De
 from datetime import datetime
 from app.config.database.database import get_db
 from sqlalchemy.orm import Session
-from app.models.models import Message,Group
+from app.models.models import Message,PersonalMessage,Group
 
 from app.schemas.schemas import GroupCreateRequest
 router = APIRouter(
@@ -12,30 +12,46 @@ router = APIRouter(
 )
 
 
+from fastapi import WebSocket
+from typing import List, Dict
+
 class ConnectionManager:
     def __init__(self):
         self.active_connections: List[WebSocket] = []
         self.group_members: dict = {}
+        self.user_connections: Dict[str, WebSocket] = {} 
 
-    async def connect(self, websocket: WebSocket, group_name: str):
+    async def connect(self, websocket: WebSocket, group_name: str, username: str):
         await websocket.accept()
         self.active_connections.append(websocket)
+        self.user_connections[username] = websocket 
+        
         if group_name not in self.group_members:
             self.group_members[group_name] = []
         self.group_members[group_name].append(websocket)
 
-    def disconnect(self, websocket: WebSocket, group_name: str):
+    def disconnect(self, websocket: WebSocket, group_name: str, username: str):
         self.active_connections.remove(websocket)
         if group_name in self.group_members:
             self.group_members[group_name].remove(websocket)
+        
+        if username in self.user_connections:
+            del self.user_connections[username]
 
-    async def send_personal_message(self, message: str, websocket: WebSocket):
-        await websocket.send_text(message)
+    async def send_personal_message(self, message: str, username: str):
+        websocket = self.user_connections.get(username) 
+        if websocket:
+            await websocket.send_text(message)
+        else:
+            print(f"User {username} is not connected.")
 
     async def broadcast(self, message: str, group_name: str):
         if group_name in self.group_members:
             for connection in self.group_members[group_name]:
                 await connection.send_text(message)
+
+
+
 
 connection_manager = ConnectionManager()
 
@@ -77,6 +93,12 @@ async def websocket_endpoint(websocket: WebSocket, group_name: str, client_name:
     except WebSocketDisconnect:
         connection_manager.disconnect(websocket, group_name)
         await connection_manager.broadcast(f"Client #{client_name} left the chat", group_name)
+
+
+
+
+
+
 
 @router.get("/messages/{group_name}")
 def get_messages(group_name: str, db: Session = Depends(get_db)):

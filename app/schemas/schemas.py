@@ -87,3 +87,25 @@ class UserResponse(BaseModel):
 class GroupCreateRequest(BaseModel):
     name: str = Field(..., min_length=1, max_length=100, description="Name of the group")
     description: str = Field(None, max_length=500, description="Description of the group")
+
+
+class TodoBase(BaseModel):
+    title: str
+    description: str
+    status: Optional[bool] = False
+
+
+class TodoUpdate(BaseModel):
+    id: int
+    title: str
+    description: Optional[str]
+    status: bool
+
+    class Config:
+        orm_mode = True
+
+
+class Message(BaseModel):
+    sender: str
+    receiver: str
+    content: str

@@ -12,7 +12,7 @@ from app.services.login.login_service import (
 
 router = APIRouter(
     prefix="/login",
-    tags=['Login']
+    tags=['Login Api']
 )
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/login/verify-code")
